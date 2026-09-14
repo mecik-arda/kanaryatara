@@ -93,10 +93,15 @@ def baseline_yukle(yol: str) -> tuple[str, dict[str, tuple[float, ...]]]:
         raise ValueError("vektorler sözlüğü eksik")
     sonuc: dict[str, tuple[float, ...]] = {}
     for kimlik, vektor in vektorler.items():
+        if not isinstance(kimlik, str) or not kimlik.strip():
+            raise ValueError("vektor kimliği geçersiz")
+        anahtar = kimlik.strip().casefold()
+        if anahtar in sonuc:
+            raise ValueError(f"yinelenen vektör kimliği: {kimlik}")
         if not isinstance(vektor, list) or not vektor:
             raise ValueError(f"{kimlik} için vektör geçersiz")
         try:
-            sonuc[kimlik] = tuple(_sayi(x) for x in vektor)
+            sonuc[anahtar] = tuple(_sayi(x) for x in vektor)
         except ValueError:
             raise ValueError(f"{kimlik} için vektör geçersiz")
     if not sonuc:
@@ -185,7 +190,7 @@ def karsilastir(
     uyarilar: list[str] = []
     kayit_haritasi: dict[str, list[KayitSatiri]] = {}
     for k in kayitlar:
-        kayit_haritasi.setdefault(k.kanarya_id, []).append(k)
+        kayit_haritasi.setdefault(k.kanarya_id.casefold(), []).append(k)
     farkli_modeller = sorted(
         {k.model_parmagi for k in kayitlar if k.model_parmagi != model_parmagi}
     )
@@ -221,11 +226,45 @@ def karsilastir(
         )
     bulgular: list[Bulgu] = []
     for kan in kanaryalar:
-        temel = vektorler.get(kan.kanarya_id)
+        kimlik = kan.kanarya_id.casefold()
+        temel = vektorler.get(kimlik)
         if temel is None:
-            uyarilar.append(f"{kan.kanarya_id}: temel çizgide vektör yok, atlandı.")
+            uyarilar.append(f"{kan.kanarya_id}: temel çizgide vektör yok.")
+            bulgular.append(
+                Bulgu(
+                    kural="KNT07",
+                    seviye="kritik",
+                    belge=kan.kanarya_id,
+                    dosya="",
+                    satir=0,
+                    sinyal="temel_vektor_eksik",
+                    guven="yuksek",
+                    kanit=maskele(kan.kanarya_id),
+                    aciklama="Kanarya için temel çizgi vektörü yok; karşılaştırma tamamlanamadı.",
+                    oneri="Temel çizgiyi kanarya koleksiyonuyla eşleyip insan onayıyla doğrulayın.",
+                )
+            )
             continue
-        esler = kayit_haritasi.get(kan.kanarya_id)
+        if len(kan.vektor) != len(temel):
+            uyarilar.append(
+                f"{kan.kanarya_id}: kanarya ve temel çizgi vektör boyutu uyuşmuyor, atlandı."
+            )
+            bulgular.append(
+                Bulgu(
+                    kural="KNT07",
+                    seviye="kritik",
+                    belge=kan.kanarya_id,
+                    dosya="",
+                    satir=0,
+                    sinyal="kanarya_temel_boyutu_uyusmazligi",
+                    guven="yuksek",
+                    kanit=maskele(kan.kanarya_id),
+                    aciklama="Kanarya tanımının vektör boyutu temel çizgiyle uyuşmuyor.",
+                    oneri="Kanarya ve temel çizgiyi aynı embedding modeliyle yeniden üretin.",
+                )
+            )
+            continue
+        esler = kayit_haritasi.get(kimlik)
         if not esler:
             seviye = "yuksek"
             guven = "orta"

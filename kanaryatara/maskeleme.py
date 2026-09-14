@@ -5,6 +5,8 @@ def maskele(deger: str) -> str:
     """Kanıt metnini kısmen görünür bırakır; ham değer rapora yazılmaz."""
     if not deger:
         return "—"
+    if len(deger) <= 2:
+        return "***"
     if len(deger) <= 8:
         return deger[:2] + "***"
     if len(deger) <= 16:
@@ -13,13 +15,17 @@ def maskele(deger: str) -> str:
 
 
 def url_maskele(url: str) -> str:
-    """URL'de yalnızca şema ve alan adını bırakır; yol ve sorgu gizlenir."""
+    """URL'de yalnızca şema ve alan adını bırakır; kimlik bilgileri de gizlenir."""
     try:
         parca = urlsplit(url)
     except ValueError:
         return maskele(url)
+    if not parca.scheme:
+        return maskele(url)
     if parca.scheme == "data":
         return "data:***"
-    if not parca.scheme or not parca.netloc:
-        return maskele(url)
-    return f"{parca.scheme}://{parca.netloc}/***"
+    if not parca.netloc:
+        return f"{parca.scheme}:***"
+    if not parca.hostname:
+        return "url:***"
+    return f"{parca.scheme}://{parca.hostname}/***"

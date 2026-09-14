@@ -38,7 +38,7 @@ _OTORITE_DESENLERI = (
     (re.compile(r"zorunlu[\s-]?tutulmuş"), "zorunlu tutulmuş"),
 )
 _TARIH_RE = re.compile(
-    r"\b\d{1,2}[./]\d{1,2}[./]\d{2,4}\b"
+    r"\b\d{1,2}[-./]\d{1,2}[-./]\d{2,4}\b"
     r"|\b\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\b"
     r"|\b\d{4}-\d{2}-\d{2}\b"
 )
@@ -222,20 +222,29 @@ def _knt04(belge: Belge, izinli: tuple[str, ...]) -> list[Bulgu]:
         url = ham_url.strip().lstrip("<").rstrip(">")
         if url.startswith("//"):
             url = "https:" + url
+        if re.match(r"^[A-Za-z]:[\\/]", url):
+            continue
         try:
             parca = urlsplit(url)
         except ValueError:
             continue
-        if parca.scheme not in ("http", "https", "data"):
+        if not parca.scheme:
             continue
-        if parca.scheme == "data":
+        if parca.scheme in ("javascript", "vbscript", "file"):
+            sinyal, seviye = "tehlikeli_baglanti", "yuksek"
+        elif parca.scheme == "data":
             sinyal, seviye = "data_uri", "yuksek"
-        elif _alan_izinli(parca.hostname or "", izinli):
-            continue
-        elif gorsel:
-            sinyal, seviye = "dis_gorsel", "yuksek"
+        elif parca.scheme in ("http", "https", "ftp", "mailto"):
+            if not parca.netloc:
+                sinyal, seviye = "dis_baglanti", "dusuk"
+            elif _alan_izinli(parca.hostname or "", izinli):
+                continue
+            elif gorsel:
+                sinyal, seviye = "dis_gorsel", "yuksek"
+            else:
+                sinyal, seviye = "dis_baglanti", "dusuk"
         else:
-            sinyal, seviye = "dis_baglanti", "dusuk"
+            sinyal, seviye = "tehlikeli_baglanti", "yuksek"
         if (sinyal, url) in gorulenler:
             continue
         gorulenler.add((sinyal, url))

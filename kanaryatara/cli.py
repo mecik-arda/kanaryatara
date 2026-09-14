@@ -80,13 +80,14 @@ def ana(argumanlar: list[str] | None = None) -> int:
     )
     _ortak_secenekler(karsilastir_komutu)
     secenekler = ayrıştırıcı.parse_args(argumanlar)
+    dosya_uyarilari: list[str] = []
     try:
         if secenekler.komut == "tara":
-            belgeler, uyarilar = oku_yol(secenekler.yol)
+            belgeler, dosya_uyarilari = oku_yol(secenekler.yol)
             bulgular, ek_uyarilar = tara_belgeler(
                 belgeler, tuple(secenekler.izinli_alan_adi)
             )
-            uyarilar += ek_uyarilar
+            uyarilar = dosya_uyarilari + ek_uyarilar
             sayi = f"{len(belgeler)} belge"
         else:
             kanaryalar = kanarya_yukle(secenekler.kanarya)
@@ -102,6 +103,10 @@ def ana(argumanlar: list[str] | None = None) -> int:
     for uyari in uyarilar:
         print(f"Uyarı: {uyari}", file=sys.stderr)
     print(raporla(bulgular, secenekler.bicim, sayi, secenekler.esik, tuple(uyarilar)))
+    if secenekler.komut == "tara" and (
+        not belgeler or any("atlandı" in uyari for uyari in dosya_uyarilari)
+    ):
+        return 2
     return int(esik_asildi(bulgular, secenekler.esik))
 
 

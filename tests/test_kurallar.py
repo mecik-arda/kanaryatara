@@ -186,6 +186,13 @@ class KurallarTesti(unittest.TestCase):
         ]
         self.assertEqual(len(eslesen), 1)
 
+    def test_knt03_tireli_gun_ay_yil(self):
+        bulgular, _ = tara_belgeler([yardim_belge("Güncelleme: 15-07-2030")])
+        eslesen = [
+            b for b in bulgular if b.kural == "KNT03" and b.sinyal == "tarih_anomalisi"
+        ]
+        self.assertEqual(len(eslesen), 1)
+
     def test_knt03_arada_tire_otorite(self):
         bulgular, _ = tara_belgeler(
             [yardim_belge("Kurumsal-onay mevcuttur.", kaynak=None)]
@@ -206,6 +213,24 @@ class KurallarTesti(unittest.TestCase):
         eslesen = [b for b in bulgular if b.kural == "KNT04"]
         self.assertEqual(len(eslesen), 1)
         self.assertEqual(eslesen[0].seviye, "yuksek")
+
+    def test_knt04_tehlikeli_sema(self):
+        bulgular, _ = tara_belgeler([yardim_belge("[çalıştır](javascript:alert(1))")])
+        eslesen = [b for b in bulgular if b.kural == "KNT04"]
+        self.assertEqual(len(eslesen), 1)
+        self.assertEqual(eslesen[0].sinyal, "tehlikeli_baglanti")
+
+    def test_knt04_yerel_baglanti_sessiz(self):
+        bulgular, _ = tara_belgeler(
+            [yardim_belge("[kılavuz](docs/guide.md) [kurulum](#kurulum)")]
+        )
+        self.assertEqual([b for b in bulgular if b.kural == "KNT04"], [])
+
+    def test_knt04_windows_yolu_sessiz(self):
+        bulgular, _ = tara_belgeler(
+            [yardim_belge("[kılavuz](C:/docs/guide.md) [not](C:\\docs\\guide.md)")]
+        )
+        self.assertEqual([b for b in bulgular if b.kural == "KNT04"], [])
 
     def test_knt04_izinli_alan_portlu(self):
         bulgular, _ = tara_belgeler(

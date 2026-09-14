@@ -7,6 +7,9 @@ class MaskelemeTesti(unittest.TestCase):
     def test_kisa_deger(self):
         self.assertEqual(maskele("abc"), "ab***")
 
+    def test_cok_kisa_deger_tam_maskeli(self):
+        self.assertEqual(maskele("m1"), "***")
+
     def test_orta_deger(self):
         self.assertEqual(maskele("abcdefghijkl"), "abcd***")
 
@@ -21,6 +24,15 @@ class MaskelemeTesti(unittest.TestCase):
             url_maskele("https://izleme.example.com/istatistik?id=abc123"),
             "https://izleme.example.com/***",
         )
+
+    def test_url_kimlik_bilgileri_gizlenir(self):
+        self.assertEqual(
+            url_maskele("https://kullanici:sifre@example.com/ozel"),
+            "https://example.com/***",
+        )
+
+    def test_tehlikeli_url_gizlenir(self):
+        self.assertEqual(url_maskele("javascript:alert('gizli')"), "javascript:***")
 
     def test_data_uri(self):
         self.assertEqual(url_maskele("data:text/plain;base64,AAA"), "data:***")

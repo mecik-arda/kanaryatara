@@ -78,10 +78,28 @@ class BelgeTesti(unittest.TestCase):
             self.assertEqual(len(belgeler), 1)
             self.assertFalse(belgeler[0].yapilandirilmis)
 
+    def test_bomlu_md_sessiz(self):
+        with tempfile.TemporaryDirectory() as dizin:
+            yol = Path(dizin) / "bomlu.md"
+            yol.write_bytes(b"\xef\xbb\xbf# Baslik\nnormal metin")
+            belgeler, uyarilar = belge.oku_yol(str(yol))
+            self.assertEqual(len(belgeler), 1)
+            self.assertNotIn("\ufeff", belgeler[0].metin)
+            self.assertEqual(uyarilar, [])
+
     def test_eksik_metin_alani_hata(self):
         with tempfile.TemporaryDirectory() as dizin:
             yol = Path(dizin) / "eksik.jsonl"
             yol.write_text('{"belge_id": "x"}\n', encoding="utf-8")
+            with self.assertRaises(belge.OkumaHatasi):
+                belge.oku_yol(str(yol))
+
+    def test_kontrol_karakterli_kimlik_hata(self):
+        with tempfile.TemporaryDirectory() as dizin:
+            yol = Path(dizin) / "kontrol.jsonl"
+            yol.write_text(
+                '{"belge_id": "kötü\nkimlik", "metin": "x"}\n', encoding="utf-8"
+            )
             with self.assertRaises(belge.OkumaHatasi):
                 belge.oku_yol(str(yol))
 

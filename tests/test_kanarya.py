@@ -90,6 +90,18 @@ class KanaryaTesti(unittest.TestCase):
             with self.assertRaises(ValueError):
                 baseline_yukle(str(yol))
 
+    def test_baseline_vektor_eksik_kritik_bulgu(self):
+        bulgular, _ = karsilastir([kanarya()], "m1", {"başka": (1.0, 0.0)}, [kayit()])
+        self.assertEqual(len(bulgular), 1)
+        self.assertEqual(bulgular[0].sinyal, "temel_vektor_eksik")
+        self.assertEqual(bulgular[0].seviye, "kritik")
+
+    def test_kimlik_eslesmesi_buyuk_kucuk_harf_duyarsiz(self):
+        bulgular, _ = karsilastir(
+            [kanarya("Kan-1")], "m1", {"kan-1": (1.0, 0.0)}, [kayit("KAN-1")]
+        )
+        self.assertEqual(bulgular, [])
+
     def test_kayit_bozuk_satir_hata(self):
         with tempfile.TemporaryDirectory() as dizin:
             yol = Path(dizin) / "kayit.jsonl"
@@ -221,6 +233,17 @@ class KanaryaTesti(unittest.TestCase):
         self.assertEqual(bulgular[0].sinyal, "vektor_boyutu_uyusmazligi")
         self.assertEqual(bulgular[0].seviye, "kritik")
         self.assertTrue(any("boyutu uyuşmuyor" in u for u in uyarilar))
+
+    def test_kanarya_temel_boyutu_uyusmazligi(self):
+        bulgular, _ = karsilastir(
+            [kanarya("kan-1", (1.0, 0.0))],
+            "m1",
+            {"kan-1": (1.0,)},
+            [kayit("kan-1", (1.0, 0.0))],
+        )
+        self.assertEqual(len(bulgular), 1)
+        self.assertEqual(bulgular[0].sinyal, "kanarya_temel_boyutu_uyusmazligi")
+        self.assertEqual(bulgular[0].seviye, "kritik")
 
     def test_top_k_bozuk_hata(self):
         with tempfile.TemporaryDirectory() as dizin:

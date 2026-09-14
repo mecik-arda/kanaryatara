@@ -46,10 +46,10 @@ kanaryatara tara ./belgeler --izinli-alan-adi kurum.example.com
 kanaryatara karsilastir --kanarya ornekler/kanarya.json --baseline ornekler/baseline.json --kayit ornekler/kayit.jsonl
 ```
 
-Örnek çıktı (`tara ornekler/riskli.jsonl`):
+Örnek çıktı (kısaltılmış, `tara ornekler/riskli.jsonl`):
 
 ```
-KanaryaTara: 10 belge, 8 bulgu.
+KanaryaTara: 10 belge, 10 bulgu.
 [Yuksek] KNT01 ornekler\riskli.jsonl:1 (belge-1): Belgede 3 talimat benzeri kalıp bulundu.
   Kanıt: Önceki***in.
   Güven: orta
@@ -64,6 +64,8 @@ KanaryaTara: 10 belge, 8 bulgu.
   Öneri: Belge kimliklerini koleksiyonda benzersiz tutun.
 Risk eşiğine ulaşıldı.
 ```
+
+Metin çıktısında gösterim kısaltılabilir; JSON çıktısı tüm bulguları içerir.
 
 `karsilastir` çıktısı:
 
@@ -98,7 +100,7 @@ Risk eşiğine ulaşıldı.
 | KNT06 yakın-kopya kümeleri | ✓ | ✓ | 3-gram Jaccard ≥ 0.85 |
 | KNT07 kanarya vektör sapması | kayıt | — | `karsilastir` komutu ile |
 
-`.git`, `__pycache__`, `.venv`, `node_modules`, `.pytest_cache` ve `.ruff_cache` atlanır. Belge dosyaları 1 MB, kanarya/baseline/kayıt dosyaları 10 MB üstü olduğunda atlanır veya hata döner. Boş yapılandırılmış dosyalar dizin modunda uyarıyla, tek dosya hedeflendiğinde hata ile bildirilir; bozuk dosyalar dizin modunda uyarıyla atlanır, tek dosya hedeflendiğinde hatadır (çıkış kodu 2).
+`.git`, `__pycache__`, `.venv`, `node_modules`, `.pytest_cache` ve `.ruff_cache` atlanır. Belge dosyaları 1 MB, kanarya/baseline/kayıt dosyaları 10 MB üstü olduğunda atlanır veya hata döner. Boş yapılandırılmış dosyalar dizin modunda uyarıyla, tek dosya hedeflendiğinde hata ile bildirilir; bozuk veya atlanan dosyalar eksik taramayı temiz başarı göstermemesi için çıkış kodu 2 üretir.
 
 ## Rakipler ve fark
 

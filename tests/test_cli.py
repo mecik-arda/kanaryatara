@@ -48,6 +48,34 @@ class CliTesti(unittest.TestCase):
                 kod = ana(["tara", "bu/yol/yok"])
         self.assertEqual(kod, 2)
 
+    def test_tara_atlanan_dosya_iki(self):
+        with tempfile.TemporaryDirectory() as dizin:
+            kok = Path(dizin)
+            (kok / "iyi.jsonl").write_text(
+                '{"belge_id": "b1", "metin": "temiz", "kaynak": "ic"}\n',
+                encoding="utf-8",
+            )
+            (kok / "bozuk.jsonl").write_text("bozuk\n", encoding="utf-8")
+            with contextlib.redirect_stderr(io.StringIO()):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    kod = ana(["tara", str(kok)])
+        self.assertEqual(kod, 2)
+
+    def test_tara_knt06_kipatilmasi_sifir(self):
+        with tempfile.TemporaryDirectory() as dizin:
+            kok = Path(dizin)
+            for i in range(501):
+                (kok / f"d{i}.jsonl").write_text(
+                    f'{{"belge_id": "d{i}", "metin": "kısa metin", "kaynak": "ic"}}\n',
+                    encoding="utf-8",
+                )
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    kod = ana(["tara", str(kok)])
+        self.assertEqual(kod, 0)
+        self.assertIn("KNT06 atlandı", stderr.getvalue())
+
     def test_karsilastir_kritik_bir(self):
         with contextlib.redirect_stdout(io.StringIO()):
             kod = ana(

@@ -14,6 +14,8 @@ ATLANAN_DIZINLER = {
     ".ruff_cache",
 }
 MAKS_BOYUT = 1_000_000
+MAKS_DOSYA_SAYISI = 10_000
+MAKS_TOPLAM_BOYUT = 100_000_000
 
 
 class OkumaHatasi(ValueError):
@@ -44,6 +46,8 @@ def _belge_ayristir(
     metin = nesne.get("metin")
     if not isinstance(belge_id, str) or not belge_id.strip():
         raise OkumaHatasi("belge_id eksik veya boş")
+    if any(ord(c) < 32 or 0x7F <= ord(c) <= 0x9F for c in belge_id):
+        raise OkumaHatasi("belge_id kontrol karakteri içeriyor")
     if not isinstance(metin, str):
         raise OkumaHatasi("metin eksik veya metin değil")
     return Belge(
@@ -62,10 +66,7 @@ def _dosya_belgeleri(dosya: pathlib.Path) -> list[Belge]:
     if dosya.stat().st_size > MAKS_BOYUT:
         raise OkumaHatasi("çok büyük (1 MB üstü)")
     uzanti = dosya.suffix.lower()
-    if uzanti in YAPILANDIRILMIS_UZANTILAR:
-        metin = dosya.read_text(encoding="utf-8-sig")
-    else:
-        metin = dosya.read_text(encoding="utf-8")
+    metin = dosya.read_text(encoding="utf-8-sig")
     if uzanti == ".jsonl":
         belgeler = []
         for no, satir in enumerate(metin.splitlines(), 1):
@@ -133,9 +134,20 @@ def oku_yol(yol: str) -> tuple[list[Belge], list[str]]:
             and p.suffix.lower() in DESTEKLENEN_UZANTILAR
             and not any(parca in ATLANAN_DIZINLER for parca in p.parts)
         )
-        for dosya in dosyalar:
+        toplam_boyut = 0
+        for no, dosya in enumerate(dosyalar):
+            if no >= MAKS_DOSYA_SAYISI:
+                uyarilar.append(
+                    f"{dosya.name} ve sonrası atlandı: dosya sayısı sınırı aşıldı"
+                )
+                break
             try:
+                boyut = dosya.stat().st_size
+                if toplam_boyut + boyut > MAKS_TOPLAM_BOYUT:
+                    uyarilar.append(f"{dosya.name} atlandı: toplam boyut sınırı aşıldı")
+                    continue
                 yeni_belgeler = _dosya_belgeleri(dosya)
+                toplam_boyut += boyut
                 if (
                     not yeni_belgeler
                     and dosya.suffix.lower() in YAPILANDIRILMIS_UZANTILAR
