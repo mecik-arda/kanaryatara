@@ -101,6 +101,26 @@ class BelgeTesti(unittest.TestCase):
             belgeler, _ = belge.oku_yol(str(yol))
             self.assertEqual([b.belge_id for b in belgeler], ["j1", "j2"])
 
+    def test_bom_jsonl_okunur(self):
+        with tempfile.TemporaryDirectory() as dizin:
+            yol = Path(dizin) / "bom.jsonl"
+            yol.write_bytes(
+                b"\xef\xbb\xbf"
+                + json.dumps(
+                    {"belge_id": "b1", "metin": "metin"}, ensure_ascii=False
+                ).encode("utf-8")
+            )
+            belgeler, uyarilar = belge.oku_yol(str(yol))
+            self.assertEqual(len(belgeler), 1)
+            self.assertEqual(uyarilar, [])
+
+    def test_bos_jsonl_hata(self):
+        with tempfile.TemporaryDirectory() as dizin:
+            yol = Path(dizin) / "bos.jsonl"
+            yol.write_text("", encoding="utf-8")
+            with self.assertRaises(belge.OkumaHatasi):
+                belge.oku_yol(str(yol))
+
 
 if __name__ == "__main__":
     unittest.main()

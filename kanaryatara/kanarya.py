@@ -7,15 +7,34 @@ from .modeller import Bulgu, KanaryaTanimi, KayitSatiri
 
 
 AZ_ORNEK_SINIRI = 5
+MAKS_KAYIT_BOYUT = 10_000_000
+
+
+def _sayi(x) -> float:
+    if isinstance(x, bool) or not isinstance(x, (int, float)):
+        raise ValueError
+    try:
+        deger = float(x)
+    except (OverflowError, ValueError):
+        raise ValueError
+    if not math.isfinite(deger):
+        raise ValueError
+    return deger
+
+
+def _okunan_metin(yol: str, ad: str) -> str:
+    try:
+        dosya = pathlib.Path(yol)
+        if dosya.stat().st_size > MAKS_KAYIT_BOYUT:
+            raise ValueError(f"{ad} çok büyük (10 MB üstü)")
+        return dosya.read_text(encoding="utf-8-sig")
+    except OSError as hata:
+        raise ValueError(f"{ad} okunamadı: {hata}") from hata
 
 
 def kanarya_yukle(yol: str) -> list[KanaryaTanimi]:
     try:
-        metin = pathlib.Path(yol).read_text(encoding="utf-8")
-    except OSError as hata:
-        raise ValueError(f"kanarya dosyası okunamadı: {hata}") from hata
-    try:
-        veri = json.loads(metin)
+        veri = json.loads(_okunan_metin(yol, "kanarya dosyası"))
     except json.JSONDecodeError as hata:
         raise ValueError(f"kanarya dosyası ayrıştırılamadı: {hata}") from hata
     liste = veri.get("kanaryalar") if isinstance(veri, dict) else veri
@@ -30,11 +49,11 @@ def kanarya_yukle(yol: str) -> list[KanaryaTanimi]:
         probe = nesne.get("probe")
         if not isinstance(kanarya_id, str) or not kanarya_id.strip():
             raise ValueError(f"{i}. kanaryada kanarya_id eksik")
-        if (
-            not isinstance(vektor, list)
-            or not vektor
-            or not all(isinstance(x, (int, float)) for x in vektor)
-        ):
+        if not isinstance(vektor, list) or not vektor:
+            raise ValueError(f"{i}. kanaryada vektor geçersiz")
+        try:
+            sayilar = tuple(_sayi(x) for x in vektor)
+        except ValueError:
             raise ValueError(f"{i}. kanaryada vektor geçersiz")
         if not isinstance(probe, str) or not probe.strip():
             raise ValueError(f"{i}. kanaryada probe eksik")
@@ -42,7 +61,7 @@ def kanarya_yukle(yol: str) -> list[KanaryaTanimi]:
         kanaryalar.append(
             KanaryaTanimi(
                 kanarya_id=kanarya_id.strip(),
-                vektor=tuple(float(x) for x in vektor),
+                vektor=sayilar,
                 probe=probe.strip(),
                 konu=konu.strip()
                 if isinstance(konu, str) and konu.strip()
@@ -56,11 +75,7 @@ def kanarya_yukle(yol: str) -> list[KanaryaTanimi]:
 
 def baseline_yukle(yol: str) -> tuple[str, dict[str, tuple[float, ...]]]:
     try:
-        metin = pathlib.Path(yol).read_text(encoding="utf-8")
-    except OSError as hata:
-        raise ValueError(f"temel çizgi dosyası okunamadı: {hata}") from hata
-    try:
-        veri = json.loads(metin)
+        veri = json.loads(_okunan_metin(yol, "temel çizgi dosyası"))
     except json.JSONDecodeError as hata:
         raise ValueError(f"temel çizgi dosyası ayrıştırılamadı: {hata}") from hata
     if not isinstance(veri, dict):
@@ -73,23 +88,19 @@ def baseline_yukle(yol: str) -> tuple[str, dict[str, tuple[float, ...]]]:
         raise ValueError("vektorler sözlüğü eksik")
     sonuc: dict[str, tuple[float, ...]] = {}
     for kimlik, vektor in vektorler.items():
-        if (
-            not isinstance(vektor, list)
-            or not vektor
-            or not all(isinstance(x, (int, float)) for x in vektor)
-        ):
+        if not isinstance(vektor, list) or not vektor:
             raise ValueError(f"{kimlik} için vektör geçersiz")
-        sonuc[kimlik] = tuple(float(x) for x in vektor)
+        try:
+            sonuc[kimlik] = tuple(_sayi(x) for x in vektor)
+        except ValueError:
+            raise ValueError(f"{kimlik} için vektör geçersiz")
     if not sonuc:
         raise ValueError("temel çizgide hiç vektör yok")
     return model_parmagi.strip(), sonuc
 
 
 def kayit_yukle(yol: str) -> list[KayitSatiri]:
-    try:
-        satirlar = pathlib.Path(yol).read_text(encoding="utf-8").splitlines()
-    except OSError as hata:
-        raise ValueError(f"kayıt dosyası okunamadı: {hata}") from hata
+    satirlar = _okunan_metin(yol, "kayıt dosyası").splitlines()
     kayitlar: list[KayitSatiri] = []
     for no, satir in enumerate(satirlar, 1):
         if not satir.strip():
@@ -107,11 +118,11 @@ def kayit_yukle(yol: str) -> list[KayitSatiri]:
         model_parmagi = nesne.get("model_parmagi")
         if not isinstance(kanarya_id, str) or not kanarya_id.strip():
             raise ValueError(f"{no}. satırda kanarya_id eksik")
-        if (
-            not isinstance(vektor, list)
-            or not vektor
-            or not all(isinstance(x, (int, float)) for x in vektor)
-        ):
+        if not isinstance(vektor, list) or not vektor:
+            raise ValueError(f"{no}. satırda vektor geçersiz")
+        try:
+            sayilar = tuple(_sayi(x) for x in vektor)
+        except ValueError:
             raise ValueError(f"{no}. satırda vektor geçersiz")
         if not isinstance(model_parmagi, str) or not model_parmagi.strip():
             raise ValueError(f"{no}. satırda model_parmagi eksik")
@@ -124,7 +135,7 @@ def kayit_yukle(yol: str) -> list[KayitSatiri]:
         kayitlar.append(
             KayitSatiri(
                 kanarya_id=kanarya_id.strip(),
-                vektor=tuple(float(x) for x in vektor),
+                vektor=sayilar,
                 model_parmagi=model_parmagi.strip(),
                 top_k=top_k_listesi,
             )
@@ -164,7 +175,7 @@ def karsilastir(
 
     LLM çağırmaz, embedding üretmez; yalnızca kayıtlardaki vektörlerin
     kosinüs benzerliğine bakar. Model parmak izi değiştiyse otomatik
-    yeniden temel çizgi ÇEKİLMEZ; insan onayı istenir (fail-safe).
+    yeniden temel çizgi ÇEKİLMEZ; bulgu üretilir (fail-safe).
     """
     uyarilar: list[str] = []
     kayit_haritasi: dict[str, list[KayitSatiri]] = {}
@@ -176,13 +187,26 @@ def karsilastir(
     if farkli_modeller:
         uyarilar.append(
             "Model/embedding parmak izi değişti (kayıt: "
-            + ", ".join(farkli_modeller)
+            + ", ".join(maskele(m) for m in farkli_modeller)
             + "; temel çizgi: "
-            + model_parmagi
+            + maskele(model_parmagi)
             + "). Kosinüs karşılaştırması yapılmadı; yeniden temel çizgi "
             "çekilmeli (insan onayı)."
         )
-        return [], uyarilar
+        return [
+            Bulgu(
+                kural="KNT07",
+                seviye="kritik",
+                belge="—",
+                dosya="",
+                satir=0,
+                sinyal="model_parmagi_degisti",
+                guven="yuksek",
+                kanit=maskele(", ".join(farkli_modeller)),
+                aciklama="Model/embedding parmak izi değişti; temel çizgi geçersiz sayıldı.",
+                oneri="İnsan onayıyla yeniden temel çizgi çekin; eski referansla karşılaştırma bilinçli olarak yapılmadı.",
+            )
+        ], uyarilar
     az_ornek = len(kanaryalar) < AZ_ORNEK_SINIRI
     if az_ornek:
         uyarilar.append(
@@ -198,33 +222,44 @@ def karsilastir(
             continue
         esler = kayit_haritasi.get(kan.kanarya_id)
         if not esler:
+            seviye = "yuksek"
+            guven = "orta"
+            if az_ornek:
+                seviye = "orta"
+                guven = "dusuk"
             bulgular.append(
                 Bulgu(
                     kural="KNT07",
-                    seviye="yuksek",
+                    seviye=seviye,
                     belge=kan.kanarya_id,
                     dosya="",
                     satir=0,
                     sinyal="kanarya_bulunamadi",
-                    guven="orta",
+                    guven=guven,
                     kanit=maskele(kan.kanarya_id),
                     aciklama="Kanarya kayıt dosyasında yok; retrieval'da kaybolmuş olabilir.",
                     oneri="Kanarya belgesinin hâlâ bilgi tabanında olduğunu doğrulayın.",
                 )
             )
             continue
-        k = esler[-1]
-        if len(temel) != len(k.vektor):
+        uygunlar = [k for k in esler if len(k.vektor) == len(temel)]
+        if not uygunlar:
             uyarilar.append(
                 f"{kan.kanarya_id}: vektör boyutu uyuşmuyor "
-                f"(temel {len(temel)}, kayıt {len(k.vektor)}), atlandı."
+                f"(temel {len(temel)}), atlandı."
             )
             continue
-        if not k.top_k:
+        if len(uygunlar) != len(esler):
             uyarilar.append(
-                f"{kan.kanarya_id}: top_k boş; probe smoke testi (kanarya bulunmalı) yapılamadı."
+                f"{kan.kanarya_id}: {len(esler) - len(uygunlar)} kayıt boyut uyuşmazlığıyla atlandı."
             )
-        benzerlik = kosinus(temel, k.vektor)
+        for k in uygunlar:
+            if not k.top_k:
+                uyarilar.append(
+                    f"{kan.kanarya_id}: top_k boş; probe smoke testi (kanarya bulunmalı) yapılamadı."
+                )
+                break
+        benzerlik = min(kosinus(temel, k.vektor) for k in uygunlar)
         sapma = 1.0 - benzerlik
         seviye = _sapma_seviyesi(sapma)
         if seviye is None:

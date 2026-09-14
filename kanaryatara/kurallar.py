@@ -30,16 +30,28 @@ _TALIMAT_EN = (
     "as an ai",
 )
 _OTORITE_DESENLERI = (
-    r"\bresm",
-    "kurumsal onay",
-    "onaylanmıştır",
-    "politika gereği",
-    "yetkili kurum",
-    "zorunlu tutulmuş",
+    (re.compile(r"\bresm"), r"\bresm"),
+    (re.compile(r"kurumsal[\s-]?onay"), "kurumsal onay"),
+    (re.compile(r"onaylanmıştır"), "onaylanmıştır"),
+    (re.compile(r"politika[\s-]?gereği"), "politika gereği"),
+    (re.compile(r"yetkili[\s-]?kurum"), "yetkili kurum"),
+    (re.compile(r"zorunlu[\s-]?tutulmuş"), "zorunlu tutulmuş"),
 )
-_TARIH_RE = re.compile(r"\b\d{1,2}[./]\d{1,2}[./]\d{2,4}\b|\b\d{4}-\d{2}-\d{2}\b")
-_GORSEL_RE = re.compile(r"!\[[^\]]*\]\(([^)\s]+)\)")
-_LINK_RE = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)\)")
+_TARIH_RE = re.compile(
+    r"\b\d{1,2}[./]\d{1,2}[./]\d{2,4}\b"
+    r"|\b\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\b"
+    r"|\b\d{4}-\d{2}-\d{2}\b"
+)
+_GIZLEME_DESENLERI = (
+    (re.compile(r"<!--"), "<!-- yorum"),
+    (re.compile(r"display\s*:\s*none"), "display:none"),
+    (re.compile(r"visibility\s*:\s*hidden"), "visibility:hidden"),
+    (re.compile(r"font-size\s*:\s*0"), "font-size:0"),
+    (re.compile(r"hidden\s*="), "hidden="),
+    (re.compile(r"&#\d+;|&#x[0-9a-fA-F]+;"), "&# varlık"),
+)
+_GORSEL_RE = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
+_LINK_RE = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)]+)\)")
 _SOZCUK_RE = re.compile(r"\w+")
 _KNT06_SINIRI = 500
 _KNT06_EN_AZ_SOZCUK = 30
@@ -47,7 +59,7 @@ _KNT06_BENZERLIK = 0.85
 
 
 def _normalize(metin: str) -> str:
-    return metin.casefold()
+    return re.sub(r"\s+", " ", metin.casefold())
 
 
 def _satir_bul(metin: str, kosul) -> tuple[int, str]:
@@ -92,16 +104,7 @@ def _knt02(belge: Belge) -> list[Bulgu]:
     )
     kucuk = belge.metin.casefold()
     html_sinyalleri = [
-        d
-        for d in (
-            "<!--",
-            "display:none",
-            "visibility:hidden",
-            "font-size:0",
-            "hidden=",
-            "&#",
-        )
-        if d in kucuk
+        gorunen for derle, gorunen in _GIZLEME_DESENLERI if derle.search(kucuk)
     ]
     if not gizli and not html_sinyalleri:
         return []
@@ -130,7 +133,14 @@ def _knt02(belge: Belge) -> list[Bulgu]:
 
 
 def _tarih_ayristir(metin: str) -> date | None:
-    for bicim in ("%d.%m.%Y", "%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d"):
+    for bicim in (
+        "%d.%m.%Y",
+        "%d/%m/%Y",
+        "%d-%m-%Y",
+        "%Y-%m-%d",
+        "%Y/%m/%d",
+        "%Y.%m.%d",
+    ):
         try:
             return datetime.strptime(metin, bicim).date()
         except ValueError:
@@ -166,7 +176,7 @@ def _knt03(belge: Belge) -> list[Bulgu]:
                 oneri="Tarih iddialarını kaynakla doğrulayın; sahte tarih damgası zehirleme tekniğidir.",
             )
         )
-    otorite = [d for d in _OTORITE_DESENLERI if re.search(d, norm)]
+    otorite = [gorunen for derle, gorunen in _OTORITE_DESENLERI if derle.search(norm)]
     if otorite:
         kuvvetli = any(
             k in norm
@@ -174,7 +184,10 @@ def _knt03(belge: Belge) -> list[Bulgu]:
         )
         seviye = "yuksek" if kuvvetli else "orta"
         no, satir = _satir_bul(
-            belge.metin, lambda s: any(re.search(d, _normalize(s)) for d in otorite)
+            belge.metin,
+            lambda s: any(
+                derle.search(_normalize(s)) for derle, _ in _OTORITE_DESENLERI
+            ),
         )
         guven = "yuksek" if belge.kaynak else "dusuk"
         ek = "" if belge.kaynak else " Kaynak alanı boş; iddia doğrulanamadı."
@@ -195,11 +208,11 @@ def _knt03(belge: Belge) -> list[Bulgu]:
     return bulgular
 
 
-def _alan_izinli(netloc: str, izinli: tuple[str, ...]) -> bool:
-    netloc = netloc.casefold().rstrip(".")
+def _alan_izinli(alan_adi: str, izinli: tuple[str, ...]) -> bool:
+    alan_adi = alan_adi.casefold().rstrip(".")
     for alan in izinli:
         alan = alan.casefold().rstrip(".")
-        if netloc == alan or netloc.endswith("." + alan):
+        if alan_adi == alan or alan_adi.endswith("." + alan):
             return True
     return False
 
@@ -209,7 +222,8 @@ def _knt04(belge: Belge, izinli: tuple[str, ...]) -> list[Bulgu]:
     gorulenler: set[tuple[str, str]] = set()
     hedefler = [(m.group(1), True) for m in _GORSEL_RE.finditer(belge.metin)]
     hedefler += [(m.group(1), False) for m in _LINK_RE.finditer(belge.metin)]
-    for url, gorsel in hedefler:
+    for ham_url, gorsel in hedefler:
+        url = ham_url.strip().lstrip("<").rstrip(">")
         try:
             parca = urlsplit(url)
         except ValueError:
@@ -218,7 +232,7 @@ def _knt04(belge: Belge, izinli: tuple[str, ...]) -> list[Bulgu]:
             continue
         if parca.scheme == "data":
             sinyal, seviye = "data_uri", "yuksek"
-        elif _alan_izinli(parca.netloc, izinli):
+        elif _alan_izinli(parca.hostname or "", izinli):
             continue
         elif gorsel:
             sinyal, seviye = "dis_gorsel", "yuksek"
@@ -227,7 +241,7 @@ def _knt04(belge: Belge, izinli: tuple[str, ...]) -> list[Bulgu]:
         if (sinyal, url) in gorulenler:
             continue
         gorulenler.add((sinyal, url))
-        no, satir = _satir_bul(belge.metin, lambda s: url in s)
+        no, satir = _satir_bul(belge.metin, lambda s: url in s or ham_url in s)
         tur = "görsel" if gorsel else "bağlantı"
         bulgular.append(
             Bulgu(
@@ -250,7 +264,7 @@ def _knt05(belgeler: list[Belge]) -> list[Bulgu]:
     bulgular: list[Bulgu] = []
     idler: dict[str, list[Belge]] = defaultdict(list)
     for b in belgeler:
-        idler[b.belge_id].append(b)
+        idler[b.belge_id.casefold()].append(b)
         if not b.yapilandirilmis:
             continue
         if not b.kaynak:
@@ -285,19 +299,20 @@ def _knt05(belgeler: list[Belge]) -> list[Bulgu]:
                         oneri="Zaman alanını kaynakla doğrulayın.",
                     )
                 )
-    for belge_id, kume in idler.items():
+    for kume in idler.values():
         if len(kume) > 1:
             dosyalar = sorted({b.dosya for b in kume})
+            ilk = kume[0]
             bulgular.append(
                 Bulgu(
                     kural="KNT05",
                     seviye="yuksek",
-                    belge=belge_id,
+                    belge=ilk.belge_id,
                     dosya=dosyalar[0],
                     satir=0,
                     sinyal="kimlik_cakismasi",
                     guven="yuksek",
-                    kanit=maskele(belge_id),
+                    kanit=maskele(ilk.belge_id),
                     aciklama=f"Aynı belge kimliği {len(kume)} kayıtta geçiyor.",
                     oneri="Belge kimliklerini koleksiyonda benzersiz tutun.",
                 )
@@ -307,6 +322,10 @@ def _knt05(belgeler: list[Belge]) -> list[Bulgu]:
 
 def _n_gramlar(sozcukler: list[str]) -> set[tuple[str, ...]]:
     return {tuple(sozcukler[i : i + 3]) for i in range(len(sozcukler) - 2)}
+
+
+def _belge_anahtari(b: Belge) -> str:
+    return f"{b.belge_id}@{b.dosya}#{b.satir}"
 
 
 def _knt06(belgeler: list[Belge]) -> tuple[list[Bulgu], list[str]]:
@@ -322,9 +341,10 @@ def _knt06(belgeler: list[Belge]) -> tuple[list[Bulgu], list[str]]:
     ]
     if len(adaylar) < 2:
         return [], []
-    sozluk = {b.belge_id: b for b in adaylar}
+    sozluk = {_belge_anahtari(b): b for b in adaylar}
     imzalar = {
-        b.belge_id: _n_gramlar(_SOZCUK_RE.findall(_normalize(b.metin))) for b in adaylar
+        _belge_anahtari(b): _n_gramlar(_SOZCUK_RE.findall(_normalize(b.metin)))
+        for b in adaylar
     }
     ebeveyn = {k: k for k in imzalar}
 
@@ -359,18 +379,19 @@ def _knt06(belgeler: list[Belge]) -> tuple[list[Bulgu], list[str]]:
         )
         seviye = "yuksek" if talimat_var else "orta"
         ilk = min(kume)
+        belge = sozluk[ilk]
         bulgular.append(
             Bulgu(
                 kural="KNT06",
                 seviye=seviye,
-                belge=ilk,
-                dosya=sozluk[ilk].dosya,
+                belge=belge.belge_id,
+                dosya=belge.dosya,
                 satir=0,
                 sinyal="yakin_kopya_kumesi",
                 guven="orta",
                 kanit=f"{len(kume)} belge",
                 aciklama=f"Birbirine çok benzeyen {len(kume)} belge kümelendi.",
-                oneri="Aynı iddiayı yayan yakın kopyaları kaynakla doğrulayın; zehirleme çoğu kez tekrarla çalışır.",
+                oneri="Aynı iddiayı yayan yakın kopyaları kaynakla doğrulayın; zehirlenme çoğu kez tekrarla çalışır.",
             )
         )
     return bulgular, []

@@ -63,7 +63,7 @@ class CliTesti(unittest.TestCase):
             )
         self.assertEqual(kod, 1)
 
-    def test_karsilastir_model_farki_sifir(self):
+    def test_karsilastir_model_farki_bir(self):
         with tempfile.TemporaryDirectory() as dizin:
             kayit_yolu = Path(dizin) / "kayit.jsonl"
             kayit_yolu.write_text(
@@ -84,7 +84,7 @@ class CliTesti(unittest.TestCase):
                             str(kayit_yolu),
                         ]
                     )
-        self.assertEqual(kod, 0)
+        self.assertEqual(kod, 1)
         self.assertIn("parmak izi", stderr.getvalue())
 
     def test_gecersiz_secenek_iki(self):

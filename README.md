@@ -16,7 +16,7 @@ JSONL/JSON/Markdown/düz metin belge koleksiyonlarını statik kurallarla tarar;
 - **Dış görsel/bağlantı (KNT04)** — Markdown görselleri, `data:` URI'leri ve dış bağlantılar; `--izinli-alan-adi` ile kurum alanları susturulur
 - **Metadata anomalisi (KNT05)** — kaynak alanı boş, ileri tarihli zaman, koleksiyonda çakışan belge kimlikleri
 - **Yakın-kopya kümeleri (KNT06)** — aynı iddiayı küçük farklarla yayan belgelerin 3-gram Jaccard kümelemesi
-- **Kanarya sapması (KNT07)** — kanarya vektörlerinin temel çizgiyle kosinüs karşılaştırması; model/embedding parmak izi değişirse otomatik yeniden temel çizgi çekilmez, insan onayı istenir (fail-safe)
+- **Kanarya sapması (KNT07)** — kanarya vektörlerinin temel çizgiyle kosinüs karşılaştırması; model/embedding parmak izi değişirse karşılaştırma durur, kritik bulgu üretilir ve insan onaylı yeniden temel çizgi beklenir (fail-safe)
 - **Çıkış kodları** — eşik ve üzeri bulgu varsa 1, temizse 0, girdi/kullanım hatasında 2
 - **JSON çıktı** — `--bicim json` ile makine okunur sonuç; kanıtlar maskelenir
 
@@ -122,7 +122,7 @@ Bu alan dolu; işte dürüst konumlandırma. Aşağıdaki araçların hiçbiri a
 
 - Statik tarama yaklaşıktır: kodlanmış, parçalanmış veya bilinmeyen kalıplar kaçabilir.
 - Yalnızca tetikleyici kelimede aktifleşen hedefli zehirleme, kanarya sorgularında sessiz kalabilir — bu yüzden kanarya sinyali asla tek başına karar kriteri olmamalıdır.
-- Embedding modeli değişimi gerçek saldırı olmadan sapma üretir; bu yüzden model parmak izi değişince karşılaştırma durur ve insan onaylı yeniden temel çizgi beklenir.
+- Embedding modeli değişimi gerçek saldırı olmadan sapma üretir; bu yüzden model parmak izi değişince karşılaştırma durur, kritik bulgu üretilir ve insan onaylı yeniden temel çizgi beklenir.
 - Küçük kanarya kümelerinde (<5) sapma bulguları düşük güvenle işaretlenir ve seviyesi orta ile sınırlanır.
 
 ## Geliştirme

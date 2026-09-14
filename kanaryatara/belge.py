@@ -61,8 +61,11 @@ def _belge_ayristir(
 def _dosya_belgeleri(dosya: pathlib.Path) -> list[Belge]:
     if dosya.stat().st_size > MAKS_BOYUT:
         raise OkumaHatasi("çok büyük (1 MB üstü)")
-    metin = dosya.read_text(encoding="utf-8")
     uzanti = dosya.suffix.lower()
+    if uzanti in YAPILANDIRILMIS_UZANTILAR:
+        metin = dosya.read_text(encoding="utf-8-sig")
+    else:
+        metin = dosya.read_text(encoding="utf-8")
     if uzanti == ".jsonl":
         belgeler = []
         for no, satir in enumerate(metin.splitlines(), 1):
@@ -120,6 +123,8 @@ def oku_yol(yol: str) -> tuple[list[Belge], list[str]]:
             raise
         except (OSError, UnicodeDecodeError) as hata:
             raise OkumaHatasi(f"dosya okunamadı: {hata}") from hata
+        if not belgeler and hedef.suffix.lower() in YAPILANDIRILMIS_UZANTILAR:
+            raise OkumaHatasi("dosyada hiç belge yok")
     else:
         dosyalar = sorted(
             p
