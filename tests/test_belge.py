@@ -121,6 +121,20 @@ class BelgeTesti(unittest.TestCase):
             with self.assertRaises(belge.OkumaHatasi):
                 belge.oku_yol(str(yol))
 
+    def test_bos_json_dizin_uyarisi(self):
+        with tempfile.TemporaryDirectory() as dizin:
+            (Path(dizin) / "bos.json").write_text("[]", encoding="utf-8")
+            belgeler, uyarilar = belge.oku_yol(dizin)
+            self.assertEqual(belgeler, [])
+            self.assertTrue(any("bos.json" in u for u in uyarilar))
+
+    def test_dizin_bos_jsonl_uyarisi(self):
+        with tempfile.TemporaryDirectory() as dizin:
+            (Path(dizin) / "bos.jsonl").write_text("", encoding="utf-8")
+            belgeler, uyarilar = belge.oku_yol(dizin)
+            self.assertEqual(belgeler, [])
+            self.assertTrue(any("bos.jsonl" in u for u in uyarilar))
+
 
 if __name__ == "__main__":
     unittest.main()

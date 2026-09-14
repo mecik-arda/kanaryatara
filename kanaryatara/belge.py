@@ -135,7 +135,13 @@ def oku_yol(yol: str) -> tuple[list[Belge], list[str]]:
         )
         for dosya in dosyalar:
             try:
-                belgeler.extend(_dosya_belgeleri(dosya))
+                yeni_belgeler = _dosya_belgeleri(dosya)
+                if (
+                    not yeni_belgeler
+                    and dosya.suffix.lower() in YAPILANDIRILMIS_UZANTILAR
+                ):
+                    uyarilar.append(f"{dosya.name} atlandı: dosyada hiç belge yok")
+                belgeler.extend(yeni_belgeler)
             except OkumaHatasi as hata:
                 uyarilar.append(f"{dosya.name} atlandı: {hata}")
             except (OSError, UnicodeDecodeError) as hata:

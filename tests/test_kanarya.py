@@ -55,6 +55,23 @@ class KanaryaTesti(unittest.TestCase):
             with self.assertRaises(ValueError):
                 kanarya_yukle(str(yol))
 
+    def test_kanarya_yinelenen_kimlik_hata(self):
+        with tempfile.TemporaryDirectory() as dizin:
+            yol = Path(dizin) / "k.json"
+            yol.write_text(
+                json.dumps(
+                    {
+                        "kanaryalar": [
+                            {"kanarya_id": "K1", "probe": "p", "vektor": [1]},
+                            {"kanarya_id": "k1", "probe": "q", "vektor": [1]},
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaises(ValueError):
+                kanarya_yukle(str(yol))
+
     def test_baseline_yukle(self):
         with tempfile.TemporaryDirectory() as dizin:
             yol = Path(dizin) / "b.json"
@@ -200,8 +217,20 @@ class KanaryaTesti(unittest.TestCase):
             {"kan-1": (0.0, 1.0, 0.0)},
             [kayit("kan-1", (0.0, 1.0))],
         )
-        self.assertEqual(bulgular, [])
+        self.assertEqual(len(bulgular), 1)
+        self.assertEqual(bulgular[0].sinyal, "vektor_boyutu_uyusmazligi")
+        self.assertEqual(bulgular[0].seviye, "kritik")
         self.assertTrue(any("boyutu uyuşmuyor" in u for u in uyarilar))
+
+    def test_top_k_bozuk_hata(self):
+        with tempfile.TemporaryDirectory() as dizin:
+            yol = Path(dizin) / "kayit.jsonl"
+            yol.write_text(
+                '{"kanarya_id": "k1", "model_parmagi": "m1", "vektor": [1, 0], "top_k": [1]}\n',
+                encoding="utf-8",
+            )
+            with self.assertRaises(ValueError):
+                kayit_yukle(str(yol))
 
     def test_esik_alti_sapma_sessiz(self):
         bulgular, _ = karsilastir(

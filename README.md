@@ -96,9 +96,9 @@ Risk eşiğine ulaşıldı.
 | KNT04 dış görsel / bağlantı | ✓ | ✓ | `--izinli-alan-adi` desteği |
 | KNT05 metadata anomalisi | ✓ | — | düz metin dosyalarında metadata yoktur |
 | KNT06 yakın-kopya kümeleri | ✓ | ✓ | 3-gram Jaccard ≥ 0.85 |
-| KNT07 kanarya vektör sapması | ✓ | ✓ | `karsilastir` komutu ile |
+| KNT07 kanarya vektör sapması | kayıt | — | `karsilastir` komutu ile |
 
-`.git`, `__pycache__`, `.venv`, `node_modules` atlanır. 1 MB üstü dosyalar atlanır ve `Uyarı:` satırı basılır; bozuk dosyalar dizin modunda uyarıyla atlanır, tek dosya hedeflendiğinde hatadır (çıkış kodu 2).
+`.git`, `__pycache__`, `.venv`, `node_modules`, `.pytest_cache` ve `.ruff_cache` atlanır. Belge dosyaları 1 MB, kanarya/baseline/kayıt dosyaları 10 MB üstü olduğunda atlanır veya hata döner. Boş yapılandırılmış dosyalar dizin modunda uyarıyla, tek dosya hedeflendiğinde hata ile bildirilir; bozuk dosyalar dizin modunda uyarıyla atlanır, tek dosya hedeflendiğinde hatadır (çıkış kodu 2).
 
 ## Rakipler ve fark
 

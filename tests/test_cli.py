@@ -87,6 +87,28 @@ class CliTesti(unittest.TestCase):
         self.assertEqual(kod, 1)
         self.assertIn("parmak izi", stderr.getvalue())
 
+    def test_karsilastir_tum_boyut_uyusmazligi_bir(self):
+        with tempfile.TemporaryDirectory() as dizin:
+            kayit_yolu = Path(dizin) / "kayit.jsonl"
+            kayit_yolu.write_text(
+                '{"kanarya_id": "kan-1", "model_parmagi": "tr-embed-v1", "top_k": ["d1"], "vektor": [1, 0]}\n',
+                encoding="utf-8",
+            )
+            with contextlib.redirect_stderr(io.StringIO()):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    kod = ana(
+                        [
+                            "karsilastir",
+                            "--kanarya",
+                            str(ORNEKLER / "kanarya.json"),
+                            "--baseline",
+                            str(ORNEKLER / "baseline.json"),
+                            "--kayit",
+                            str(kayit_yolu),
+                        ]
+                    )
+        self.assertEqual(kod, 1)
+
     def test_gecersiz_secenek_iki(self):
         with self.assertRaises(SystemExit) as cikis:
             with contextlib.redirect_stderr(io.StringIO()):

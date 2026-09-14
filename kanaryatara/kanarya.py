@@ -41,6 +41,7 @@ def kanarya_yukle(yol: str) -> list[KanaryaTanimi]:
     if not isinstance(liste, list):
         raise ValueError("kanarya dosyası 'kanaryalar' listesi bekliyor")
     kanaryalar: list[KanaryaTanimi] = []
+    gorulen_kimlikler: set[str] = set()
     for i, nesne in enumerate(liste, 1):
         if not isinstance(nesne, dict):
             raise ValueError(f"{i}. kanarya nesne değil")
@@ -49,6 +50,10 @@ def kanarya_yukle(yol: str) -> list[KanaryaTanimi]:
         probe = nesne.get("probe")
         if not isinstance(kanarya_id, str) or not kanarya_id.strip():
             raise ValueError(f"{i}. kanaryada kanarya_id eksik")
+        kimlik = kanarya_id.strip().casefold()
+        if kimlik in gorulen_kimlikler:
+            raise ValueError(f"{i}. kanaryada yinelenen kanarya_id: {kanarya_id}")
+        gorulen_kimlikler.add(kimlik)
         if not isinstance(vektor, list) or not vektor:
             raise ValueError(f"{i}. kanaryada vektor geçersiz")
         try:
@@ -127,11 +132,11 @@ def kayit_yukle(yol: str) -> list[KayitSatiri]:
         if not isinstance(model_parmagi, str) or not model_parmagi.strip():
             raise ValueError(f"{no}. satırda model_parmagi eksik")
         top_k = nesne.get("top_k")
-        top_k_listesi = (
-            tuple(str(x) for x in top_k)
-            if isinstance(top_k, list) and all(isinstance(x, str) for x in top_k)
-            else ()
-        )
+        if top_k is not None and (
+            not isinstance(top_k, list) or not all(isinstance(x, str) for x in top_k)
+        ):
+            raise ValueError(f"{no}. satırda top_k geçersiz")
+        top_k_listesi = tuple(top_k or ())
         kayitlar.append(
             KayitSatiri(
                 kanarya_id=kanarya_id.strip(),
@@ -247,6 +252,20 @@ def karsilastir(
             uyarilar.append(
                 f"{kan.kanarya_id}: vektör boyutu uyuşmuyor "
                 f"(temel {len(temel)}), atlandı."
+            )
+            bulgular.append(
+                Bulgu(
+                    kural="KNT07",
+                    seviye="kritik",
+                    belge=kan.kanarya_id,
+                    dosya="",
+                    satir=0,
+                    sinyal="vektor_boyutu_uyusmazligi",
+                    guven="yuksek",
+                    kanit=maskele(kan.kanarya_id),
+                    aciklama="Kanarya ölçüm vektörü temel çizgiyle karşılaştırılamadı.",
+                    oneri="Embedding modelini ve kayıt şemasını doğrulayın; ölçüm geçersizken karar vermeyin.",
+                )
             )
             continue
         if len(uygunlar) != len(esler):

@@ -60,6 +60,12 @@ class KurallarTesti(unittest.TestCase):
         self.assertEqual(len(eslesen), 1)
         self.assertIn("U+200B", eslesen[0].kanit)
 
+    def test_knt02_gomulu_bom(self):
+        bulgular, _ = tara_belgeler([yardim_belge("Gizli\ufeffnot")])
+        eslesen = [b for b in bulgular if b.kural == "KNT02"]
+        self.assertEqual(len(eslesen), 1)
+        self.assertIn("U+FEFF", eslesen[0].kanit)
+
     def test_knt02_gizli_html(self):
         bulgular, _ = tara_belgeler([yardim_belge("metin <!-- gizli -->")])
         self.assertIn("KNT02", kurallar(bulgular))
@@ -181,7 +187,9 @@ class KurallarTesti(unittest.TestCase):
         self.assertEqual(len(eslesen), 1)
 
     def test_knt03_arada_tire_otorite(self):
-        bulgular, _ = tara_belgeler([yardim_belge("Kurumsal-onay mevcuttur.", kaynak=None)])
+        bulgular, _ = tara_belgeler(
+            [yardim_belge("Kurumsal-onay mevcuttur.", kaynak=None)]
+        )
         eslesen = [
             b for b in bulgular if b.kural == "KNT03" and b.sinyal == "imza_otorite"
         ]
@@ -189,6 +197,12 @@ class KurallarTesti(unittest.TestCase):
 
     def test_knt04_parantez_acili_url(self):
         bulgular, _ = tara_belgeler([yardim_belge("![x](<https://a.example/i.png>)")])
+        eslesen = [b for b in bulgular if b.kural == "KNT04"]
+        self.assertEqual(len(eslesen), 1)
+        self.assertEqual(eslesen[0].seviye, "yuksek")
+
+    def test_knt04_protokol_bagimsiz_gorsel(self):
+        bulgular, _ = tara_belgeler([yardim_belge("![x](//evil.example/i.png)")])
         eslesen = [b for b in bulgular if b.kural == "KNT04"]
         self.assertEqual(len(eslesen), 1)
         self.assertEqual(eslesen[0].seviye, "yuksek")
@@ -213,7 +227,9 @@ class KurallarTesti(unittest.TestCase):
         bulgular, _ = tara_belgeler(
             [
                 yardim_belge(uzun, belge_id="ayni", dosya="a.jsonl", satir=1),
-                yardim_belge(uzun + "ekleme.", belge_id="ayni", dosya="a.jsonl", satir=2),
+                yardim_belge(
+                    uzun + "ekleme.", belge_id="ayni", dosya="a.jsonl", satir=2
+                ),
             ]
         )
         eslesen = [b for b in bulgular if b.kural == "KNT06"]

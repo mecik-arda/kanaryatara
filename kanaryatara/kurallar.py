@@ -96,11 +96,7 @@ def _knt01(belge: Belge) -> list[Bulgu]:
 
 def _knt02(belge: Belge) -> list[Bulgu]:
     gizli = sorted(
-        {
-            f"U+{ord(c):04X}"
-            for c in belge.metin
-            if unicodedata.category(c) == "Cf" and c != "\ufeff"
-        }
+        {f"U+{ord(c):04X}" for c in belge.metin if unicodedata.category(c) == "Cf"}
     )
     kucuk = belge.metin.casefold()
     html_sinyalleri = [
@@ -224,6 +220,8 @@ def _knt04(belge: Belge, izinli: tuple[str, ...]) -> list[Bulgu]:
     hedefler += [(m.group(1), False) for m in _LINK_RE.finditer(belge.metin)]
     for ham_url, gorsel in hedefler:
         url = ham_url.strip().lstrip("<").rstrip(">")
+        if url.startswith("//"):
+            url = "https:" + url
         try:
             parca = urlsplit(url)
         except ValueError:
@@ -324,8 +322,8 @@ def _n_gramlar(sozcukler: list[str]) -> set[tuple[str, ...]]:
     return {tuple(sozcukler[i : i + 3]) for i in range(len(sozcukler) - 2)}
 
 
-def _belge_anahtari(b: Belge) -> str:
-    return f"{b.belge_id}@{b.dosya}#{b.satir}"
+def _belge_anahtari(b: Belge) -> tuple[str, str, int]:
+    return b.belge_id, b.dosya, b.satir
 
 
 def _knt06(belgeler: list[Belge]) -> tuple[list[Bulgu], list[str]]:
@@ -348,13 +346,13 @@ def _knt06(belgeler: list[Belge]) -> tuple[list[Bulgu], list[str]]:
     }
     ebeveyn = {k: k for k in imzalar}
 
-    def bul(x: str) -> str:
+    def bul(x: tuple[str, str, int]) -> tuple[str, str, int]:
         while ebeveyn[x] != x:
             ebeveyn[x] = ebeveyn[ebeveyn[x]]
             x = ebeveyn[x]
         return x
 
-    def birles(x: str, y: str) -> None:
+    def birles(x: tuple[str, str, int], y: tuple[str, str, int]) -> None:
         rx, ry = bul(x), bul(y)
         if rx != ry:
             ebeveyn[ry] = rx
@@ -366,7 +364,7 @@ def _knt06(belgeler: list[Belge]) -> tuple[list[Bulgu], list[str]]:
             birlesim = len(a | b)
             if birlesim and len(a & b) / birlesim >= _KNT06_BENZERLIK:
                 birles(anahtarlar[i], anahtarlar[j])
-    kumeler: dict[str, list[str]] = defaultdict(list)
+    kumeler: dict[tuple[str, str, int], list[tuple[str, str, int]]] = defaultdict(list)
     for k in imzalar:
         kumeler[bul(k)].append(k)
     bulgular: list[Bulgu] = []
