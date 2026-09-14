@@ -1,0 +1,5 @@
+{"kanarya_id": "kan-1", "model_parmagi": "tr-embed-v1", "top_k": ["doc-101"], "vektor": [1.0, 0.0, 0.0, 0.0]}
+{"kanarya_id": "kan-2", "model_parmagi": "tr-embed-v1", "top_k": ["doc-102"], "vektor": [0.0, 1.0, 0.0, 0.0]}
+{"kanarya_id": "kan-3", "model_parmagi": "tr-embed-v1", "top_k": ["doc-999"], "vektor": [0.6, 0.0, 0.8, 0.0]}
+{"kanarya_id": "kan-4", "model_parmagi": "tr-embed-v1", "top_k": ["doc-104"], "vektor": [0.0, 0.0, 0.0, 1.0]}
+{"kanarya_id": "kan-5", "model_parmagi": "tr-embed-v1", "top_k": ["doc-105"], "vektor": [1.0, 0.0, 1.0, 0.0]}

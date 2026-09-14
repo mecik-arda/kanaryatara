@@ -1,0 +1,9 @@
+{
+  "kanaryalar": [
+    {"kanarya_id": "kan-1", "konu": "urun-politika", "probe": "iade süresi nedir", "vektor": [1.0, 0.0, 0.0, 0.0]},
+    {"kanarya_id": "kan-2", "konu": "gizlilik", "probe": "veri saklama süresi", "vektor": [0.0, 1.0, 0.0, 0.0]},
+    {"kanarya_id": "kan-3", "konu": "teslimat", "probe": "kargo süresi", "vektor": [0.0, 0.0, 1.0, 0.0]},
+    {"kanarya_id": "kan-4", "konu": "faturalama", "probe": "fatura kesim tarihi", "vektor": [0.0, 0.0, 0.0, 1.0]},
+    {"kanarya_id": "kan-5", "konu": "destek", "probe": "destek hattı", "vektor": [1.0, 0.0, 1.0, 0.0]}
+  ]
+}
