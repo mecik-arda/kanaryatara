@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-
 SEVIYELER = {"dusuk": 1, "orta": 2, "yuksek": 3, "kritik": 4}
 
 KURALLAR = {

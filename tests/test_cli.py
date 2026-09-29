@@ -7,7 +7,6 @@ from pathlib import Path
 
 from kanaryatara.cli import ana
 
-
 ORNEKLER = Path(__file__).resolve().parent.parent / "ornekler"
 
 

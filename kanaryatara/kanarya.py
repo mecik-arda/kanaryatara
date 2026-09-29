@@ -5,18 +5,17 @@ import pathlib
 from .maskeleme import maskele
 from .modeller import Bulgu, KanaryaTanimi, KayitSatiri
 
-
 AZ_ORNEK_SINIRI = 5
 MAKS_KAYIT_BOYUT = 10_000_000
 
 
 def _sayi(x) -> float:
-    if isinstance(x, bool) or not isinstance(x, (int, float)):
+    if isinstance(x, bool) or not isinstance(x, int | float):
         raise ValueError
     try:
         deger = float(x)
     except (OverflowError, ValueError):
-        raise ValueError
+        raise ValueError from None
     if not math.isfinite(deger):
         raise ValueError
     return deger
@@ -59,7 +58,7 @@ def kanarya_yukle(yol: str) -> list[KanaryaTanimi]:
         try:
             sayilar = tuple(_sayi(x) for x in vektor)
         except ValueError:
-            raise ValueError(f"{i}. kanaryada vektor geçersiz")
+            raise ValueError(f"{i}. kanaryada vektor geçersiz") from None
         if not isinstance(probe, str) or not probe.strip():
             raise ValueError(f"{i}. kanaryada probe eksik")
         konu = nesne.get("konu")
@@ -103,7 +102,7 @@ def baseline_yukle(yol: str) -> tuple[str, dict[str, tuple[float, ...]]]:
         try:
             sonuc[anahtar] = tuple(_sayi(x) for x in vektor)
         except ValueError:
-            raise ValueError(f"{kimlik} için vektör geçersiz")
+            raise ValueError(f"{kimlik} için vektör geçersiz") from None
     if not sonuc:
         raise ValueError("temel çizgide hiç vektör yok")
     return model_parmagi.strip(), sonuc
@@ -133,7 +132,7 @@ def kayit_yukle(yol: str) -> list[KayitSatiri]:
         try:
             sayilar = tuple(_sayi(x) for x in vektor)
         except ValueError:
-            raise ValueError(f"{no}. satırda vektor geçersiz")
+            raise ValueError(f"{no}. satırda vektor geçersiz") from None
         if not isinstance(model_parmagi, str) or not model_parmagi.strip():
             raise ValueError(f"{no}. satırda model_parmagi eksik")
         top_k = nesne.get("top_k")
@@ -160,7 +159,7 @@ def kosinus(a: tuple[float, ...], b: tuple[float, ...]) -> float:
     nb = math.sqrt(sum(x * x for x in b))
     if na == 0 or nb == 0:
         return 0.0
-    return sum(x * y for x, y in zip(a, b)) / (na * nb)
+    return sum(x * y for x, y in zip(a, b, strict=False)) / (na * nb)
 
 
 def _sapma_seviyesi(sapma: float) -> str | None:
@@ -214,7 +213,10 @@ def karsilastir(
                 guven="yuksek",
                 kanit=maskele(", ".join(farkli_modeller)),
                 aciklama="Model/embedding parmak izi değişti; temel çizgi geçersiz sayıldı.",
-                oneri="İnsan onayıyla yeniden temel çizgi çekin; eski referansla karşılaştırma bilinçli olarak yapılmadı.",
+                                oneri=(
+                    "İnsan onayıyla yeniden temel çizgi çekin; eski referansla karşılaştırma bilinçli olarak "
+                    "yapılmadı."
+                ),
             )
         ], uyarilar
     az_ornek = len(kanaryalar) < AZ_ORNEK_SINIRI
@@ -303,7 +305,9 @@ def karsilastir(
                     guven="yuksek",
                     kanit=maskele(kan.kanarya_id),
                     aciklama="Kanarya ölçüm vektörü temel çizgiyle karşılaştırılamadı.",
-                    oneri="Embedding modelini ve kayıt şemasını doğrulayın; ölçüm geçersizken karar vermeyin.",
+                                        oneri=(
+                        "Embedding modelini ve kayıt şemasını doğrulayın; ölçüm geçersizken karar vermeyin."
+                    ),
                 )
             )
             continue

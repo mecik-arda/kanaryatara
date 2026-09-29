@@ -8,7 +8,6 @@ from .belge import Belge
 from .maskeleme import maskele, url_maskele
 from .modeller import Bulgu
 
-
 _TALIMAT_TR = (
     "önceki talimatları yok say",
     "yukarıdaki talimatları",
@@ -89,7 +88,11 @@ def _knt01(belge: Belge) -> list[Bulgu]:
             guven="orta",
             kanit=maskele(satir.strip()),
             aciklama=f"Belgede {len(eslesenler)} talimat benzeri kalıp bulundu.",
-            oneri="Bilgi tabanına girecek belgelerde talimat dili arayın; bu tür içerik modeli ele geçirmek için kullanılır.",
+                        oneri=(
+                "Bilgi tabanına girecek belgelerde talimat dili arayın; bu tür içerik modeli ele geçirmek "
+                "için"
+                "kullanılır."
+            ),
         )
     ]
 
@@ -248,7 +251,7 @@ def _knt04(belge: Belge, izinli: tuple[str, ...]) -> list[Bulgu]:
         if (sinyal, url) in gorulenler:
             continue
         gorulenler.add((sinyal, url))
-        no, satir = _satir_bul(belge.metin, lambda s: url in s or ham_url in s)
+        no, satir = _satir_bul(belge.metin, lambda s, u=url, h=ham_url: u in s or h in s)
         tur = "görsel" if gorsel else "bağlantı"
         bulgular.append(
             Bulgu(
@@ -261,7 +264,11 @@ def _knt04(belge: Belge, izinli: tuple[str, ...]) -> list[Bulgu]:
                 guven="orta",
                 kanit=url_maskele(url),
                 aciklama=f"Dış kaynaklı Markdown {tur} bulundu.",
-                oneri="Belge alındığında otomatik yüklenen dış görselleri engelleyin; izinli alanları --izinli-alan-adi ile bildirin.",
+                                oneri=(
+                    "Belge alındığında otomatik yüklenen dış görselleri engelleyin; izinli alanları "
+                    "--izinli-alan-adi"
+                    "ile bildirin."
+                ),
             )
         )
     return bulgular
@@ -398,7 +405,10 @@ def _knt06(belgeler: list[Belge]) -> tuple[list[Bulgu], list[str]]:
                 guven="orta",
                 kanit=f"{len(kume)} belge",
                 aciklama=f"Birbirine çok benzeyen {len(kume)} belge kümelendi.",
-                oneri="Aynı iddiayı yayan yakın kopyaları kaynakla doğrulayın; zehirlenme çoğu kez tekrarla çalışır.",
+                                oneri=(
+                    "Aynı iddiayı yayan yakın kopyaları kaynakla doğrulayın; zehirlenme çoğu kez tekrarla "
+                    "çalışır."
+                ),
             )
         )
     return bulgular, []

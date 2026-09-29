@@ -2,7 +2,6 @@ import json
 import pathlib
 from dataclasses import dataclass
 
-
 DESTEKLENEN_UZANTILAR = {".jsonl", ".json", ".md", ".txt"}
 YAPILANDIRILMIS_UZANTILAR = {".jsonl", ".json"}
 ATLANAN_DIZINLER = {
